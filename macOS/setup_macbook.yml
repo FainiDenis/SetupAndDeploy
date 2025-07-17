@@ -1,0 +1,140 @@
+---
+- name: Setup MacBook
+  hosts: localhost
+  become: yes
+  tasks:
+
+    - name: Install Homebrew
+      shell: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      args:
+        executable: /bin/bash
+      when: ansible_distribution == "MacOSX"
+
+    - name: Ensure Homebrew is up to date
+      homebrew:
+        update_homebrew: yes
+
+    - name: Install essential applications
+      homebrew:
+        name:
+          - git
+          - curl
+          - python3
+          - ansible
+          - tree
+          - htop
+        state: present
+
+    - name: Install applications via Homebrew Cask
+      homebrew_cask:
+        name:
+          - firefox
+          - zoom
+          - rectangle
+          - adobe-acrobat-reader
+          - tailscale
+          - wireshark
+          - tuxera-ntfs
+          - mountain-duck
+          - hazel
+          - vlc
+          - appcleaner
+          - iterm2
+          - stremio
+          - visual-studio-code
+          - windows-app
+          - libreoffice
+        state: present
+
+    - name: Set up Git configuration
+      lineinfile:
+        path: ~/.gitconfig
+        line: "{{ item }}"
+      loop:
+        - "[user]"
+        - "    name = Denis Faini"
+        - "    email = dtf8841@rit.edu"
+        - "[core]"
+        - "    editor = code --wait"
+
+    - name: Configure macOS settings
+      shell: |
+        # Show hidden files in Finder
+        defaults write com.apple.finder AppleShowAllFiles -bool true
+        killall Finder
+
+        # Set the screenshot location
+        mkdir -p ~/Screenshots
+        defaults write com.apple.screencapture location ~/Screenshots
+        killall SystemUIServer
+
+        # Set the dock to auto-hide
+        defaults write com.apple.dock autohide -bool true
+
+        # Set the dock size
+        defaults write com.apple.dock tilesize -int 30
+        killall Dock
+
+        # Setup mouse tracking speed to fast
+        defaults write -g com.apple.mouse.scaling 3.0
+
+        # Disable .DS_Store files on network drives
+        defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+
+        # Set finder to show items in list view by default in all directories
+        defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
+
+        # create aliases for ls, ls -l, and ls -la use tree
+        echo "alias ls='tree -C'" >> ~/.zshrc
+        echo "alias ll='ls -l'" >> ~/.zshrc
+        echo "alias la='ls -la'" >> ~/.zshrc
+
+        # Organize Documents folder
+        mkdir -p ~/Documents/Projects
+        mkdir -p ~/Documents/Notes
+        mkdir -p ~/Documents/Personal
+        mkdir -p ~/Documents/Work
+        mkdir -p ~/Documents/Archives
+
+        Organize Downloads folder
+        mkdir -p ~/Downloads/Compressed
+        mkdir -p ~/Downloads/Media
+        mkdir -p ~/Downloads/Temporary
+
+    - name: Restart SystemUIServer to apply changes
+      shell: killall SystemUIServer
+
+    - name: Install Oh My Zsh
+      shell: |
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+      args:
+        executable: /bin/bash
+
+    - name: Set Zsh as the default shell
+      command: chsh -s /bin/zsh
+
+    - name: Install Zsh plugins
+      shell: |
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+        git clone https://github.com/zsh-users/zsh-autosuggestions.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+    - name: Configure Zsh plugins
+      lineinfile:
+        path: ~/.zshrc
+        line: "plugins=(git zsh-syntax-highlighting zsh-autosuggestions)"
+        state: present
+
+    - name: Reload Zsh configuration
+      shell: source ~/.zshrc
+
+    - name: Install additional development tools
+      homebrew:
+        name:
+          - openjdk
+          - maven
+        state: present
+
+    - name: Clean up Homebrew
+      homebrew:
+        cleanup: yes
