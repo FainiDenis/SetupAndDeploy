@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # Check if the script is run with sudo
 if [ "$EUID" -ne 0 ]; then
