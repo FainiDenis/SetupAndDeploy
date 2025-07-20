@@ -1,0 +1,51 @@
+---
+- name: Install and configure Java and Maven
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Update apt repository
+      apt:
+        update_cache: yes
+
+    - name: Install Java
+      apt:
+        name: default-jdk
+        state: present
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Set JAVA_HOME environment variable
+      lineinfile:
+        path: /etc/environment
+        line: 'JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64'
+        state: present
+
+    - name: Set MAVEN_HOME environment variable
+      lineinfile:
+        path: /etc/environment
+        line: 'MAVEN_HOME=/usr/share/maven'
+        state: present
+
+    - name: Ensure environment variables are loaded
+      shell: source /etc/environment
+      args:
+        executable: /bin/bash
+
+    - name: Verify Java installation
+      command: java -version
+      register: java_version
+
+    - name: Verify Maven installation
+      command: mvn -version
+      register: maven_version
+
+    - name: Display Java version
+      debug:
+        var: java_version.stdout
+
+    - name: Display Maven version
+      debug:
+        var: maven_version.stdout
