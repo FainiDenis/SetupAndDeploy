@@ -35,16 +35,17 @@ echo "2. Configure firewall with UFW"
 echo "3. Hardening Linux system"
 echo "4. Mount SMB share"
 echo "5. Setup Admin User"
-echo "6. All Playbooks"
-echo "7. Exit"
-read -p "Select a playbook to run (1-7): " choice
+echo "6. Java and Maven Setup"
+echo "7. All Playbooks"
+echo "8. Exit"
+read -p "Select a playbook to run (1-8): " choice
 # Run the selected Ansible playbook
 case $choice in
     1)
         ansible-playbook update_upgrade_system.yml --vault-password-file ~/.vault_pass.txt
         ;;
     2)
-        ansible-playbook --configure_firewall.yml --vault-password-file ~/.vault_pass.txt
+        ansible-playbook configure_firewall.yml --vault-password-file ~/.vault_pass.txt
         ;;
     3)
         ansible-playbook harden_system.yml --vault-password-file ~/.vault_pass.txt
