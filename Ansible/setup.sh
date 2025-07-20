@@ -55,14 +55,20 @@ case $choice in
     5)
         ansible-playbook setup_admin_user.yml --vault-password-file ~/.vault_pass.txt
         ;;
+
     6)
+        ansible-playbook java_maven.yml --vault-password-file ~/.vault_pass.txt
+        ;;
+    7)
+    
         ansible-playbook update_upgrade_system.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook configure_firewall.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook harden_system.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook mount_smb.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook setup_admin_user.yml --vault-password-file ~/.vault_pass.txt
+        ansible-playbook java_maven.yml --vault-password-file ~/.vault_pass.txt
         ;;
-    7)
+    8)
         echo "Exiting..."
         exit 0
         ;;
