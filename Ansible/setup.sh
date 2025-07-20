@@ -29,34 +29,40 @@ fi
 
 # Display Ansible playbooks and prompt user to select one with number option
 echo "Available Ansible playbooks:"
-echo "1. Configure firewall with UFW"
-echo "2. Hardening Linux system"
-echo "3. Mount SMB share"
-echo "4. Setup Admin User"
-echo "5. All Playbooks"
-echo "6. Exit"
-read -p "Select a playbook to run (1-6): " choice
+echo "---------------------------------"
+echo "1. Update and Upgrade System"
+echo "2. Configure firewall with UFW"
+echo "3. Hardening Linux system"
+echo "4. Mount SMB share"
+echo "5. Setup Admin User"
+echo "6. All Playbooks"
+echo "7. Exit"
+read -p "Select a playbook to run (1-7): " choice
 # Run the selected Ansible playbook
 case $choice in
     1)
-        ansible-playbook --configure_firewall.yml --vault-password-file ~/.vault_pass.txt
+        ansible-playbook update_upgrade_system.yml --vault-password-file ~/.vault_pass.txt
         ;;
     2)
-        ansible-playbook harden_system.yml --vault-password-file ~/.vault_pass.txt
+        ansible-playbook --configure_firewall.yml --vault-password-file ~/.vault_pass.txt
         ;;
     3)
-        ansible-playbook mount_smb.yml --vault-password-file ~/.vault_pass.txt
+        ansible-playbook harden_system.yml --vault-password-file ~/.vault_pass.txt
         ;;
     4)
-        ansible-playbook setup_admin_user.yml --vault-password-file ~/.vault_pass.txt
+        ansible-playbook mount_smb.yml --vault-password-file ~/.vault_pass.txt
         ;;
     5)
+        ansible-playbook setup_admin_user.yml --vault-password-file ~/.vault_pass.txt
+        ;;
+    6)
+        ansible-playbook update_upgrade_system.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook configure_firewall.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook harden_system.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook mount_smb.yml --vault-password-file ~/.vault_pass.txt
         ansible-playbook setup_admin_user.yml --vault-password-file ~/.vault_pass.txt
         ;;
-    6)
+    7)
         echo "Exiting..."
         exit 0
         ;;
@@ -74,6 +80,12 @@ if [[ $run == "y" || $run == "Y" ]]; then
     exec $0
 else
     echo "Exiting..."
+    echo "Uninstalling Ansible..."
+    sudo apt remove -y ansible
+    sudo apt autoremove -y
+    echo "Ansible uninstalled successfully."
+    rm -f ~/.vault_pass.txt  # Clean up the vault password file
+    echo "Vault password file removed."
     exit 0
 fi
 # End of script
