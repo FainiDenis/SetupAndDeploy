@@ -57,7 +57,7 @@ function setup-maven {
 }
 
 # function to update the windows system using powershell
-function update-system {
+function update_system {
     Write-Host "Updating system..."
     Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser  # Install the PSWindowsUpdate module
     Import-Module PSWindowsUpdate  # Import the module to use its cmdlets
@@ -65,25 +65,19 @@ function update-system {
 }
 
 # function to remvove unwanted apps
-function remove-unwanted-apps {
+function remove_unwanted-apps {
     $unwantedApps = @(
-        "*Microsoft3DViewer*",
-        "*XboxGameCallableUI*",
-        "*XboxGamingOverlay*",
-        "*Xbox.TCUI*",
-        "*XboxApp*",
-        "*WindowsAlarms*",
-        "*WindowsMaps*",
-        "*WindowsPhone*",
-        "*WindowsFeedbackHub*",
-        "*Teams*",
-        "*Solitaire*",
-        "*LinkedIn*"
+        "*Teams*"
     )
 
     foreach ($app in $unwantedApps) {
         Get-AppxPackage -Name $app | Remove-AppxPackage
     }
+}
+
+# function to set timezone
+function set_timezone {
+    Set-TimeZone -Name "Eastern Standard Time"
 }
 
 # main script execution starts here
@@ -115,6 +109,9 @@ $wingetPackages = @(
     "Adobe.Acrobat.Reader.64-bit"           # Adobe Acrobat Reader
 )
 
+# set the timezone
+set_timezone
+
 # call the function to install packages
 install_packages -packages $wingetPackages
 
@@ -125,10 +122,10 @@ configure-git
 setup-maven
 
 # call the function to remove unwanted apps
-remove-unwanted-apps
+remove_unwanted_apps
 
 # Microsoft Activation Scripts (MAS)
 irm https://get.activated.win | iex # manually run this script to activate Windows
 
 # call the function to update the system
-update-system
+update_system
