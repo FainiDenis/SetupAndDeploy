@@ -56,6 +56,14 @@ function setup-maven {
     Remove-Item -Path $mavenZipPath -Force
 }
 
+# function to update the windows system using powershell
+function update-system {
+    Write-Host "Updating system..."
+    Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser  # Install the PSWindowsUpdate module
+    Import-Module PSWindowsUpdate  # Import the module to use its cmdlets
+    Get-WindowsUpdate -AcceptAll -Install -AutoReboot  # Get and install all available updates, accepting all prompts and rebooting if necessary
+}   
+
 # main script execution starts here
 
 # check if winget is installed
@@ -96,3 +104,6 @@ setup-maven
 
 # Microsoft Activation Scripts (MAS)
 irm https://get.activated.win | iex # manually run this script to activate Windows
+
+# call the function to update the system
+update-system
