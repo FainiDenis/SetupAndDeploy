@@ -1,0 +1,51 @@
+---
+- name: Configure firewall with UFW
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Check if Proxmox is installed
+      command: pveversion
+      register: pve_check
+      failed_when: false
+      changed_when: false
+      check_mode: no
+
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Allow HTTP
+      ufw:
+        rule: allow
+        port: 80
+        proto: tcp
+
+    - name: Allow HTTPS
+      ufw:
+        rule: allow
+        port: 443
+        proto: tcp
+
+    - name: Allow Proxmox web interface
+      ufw:
+        rule: allow
+        port: 8006
+        proto: tcp
+      when: pve_check.rc == 0
+
+    - name: Set default policy to deny incoming
+      ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Enable UFW
+      ufw:
+        state: enabled

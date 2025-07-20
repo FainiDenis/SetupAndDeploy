@@ -1,0 +1,16 @@
+---
+- name: Setup admin user account and password
+  hosts: localhost
+  connection: local
+  become: yes
+  vars_files:
+    - group_vars/all/vars.yml
+  tasks:
+    - name: Create admin user
+      user:
+        name: "{{ admin_username }}"
+        password: "{{ admin_password | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+        state: present

@@ -1,0 +1,35 @@
+---
+- name: Mount SMB server
+  hosts: localhost
+  connection: local
+  become: yes
+  vars_files:
+    - group_vars/all/vars.yml
+  tasks:
+    - name: Install cifs-utils
+      apt:
+        name: cifs-utils
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create mount point
+      file:
+        path: "{{ smb_mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create credentials file
+      copy:
+        content: |
+          username={{ smb_username }}
+          password={{ smb_password }}
+        dest: /etc/smb_credentials
+        mode: '0600'
+
+    - name: Mount SMB share
+      mount:
+        path: "{{ smb_mount_point }}"
+        src: "{{ smb_server }}"
+        fstype: cifs
+        opts: "credentials=/etc/smb_credentials,uid=1000,gid=1000,file_mode=0644,dir_mode=0755"
+        state: mounted
