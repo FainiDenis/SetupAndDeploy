@@ -62,7 +62,29 @@ function update-system {
     Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser  # Install the PSWindowsUpdate module
     Import-Module PSWindowsUpdate  # Import the module to use its cmdlets
     Get-WindowsUpdate -AcceptAll -Install -AutoReboot  # Get and install all available updates, accepting all prompts and rebooting if necessary
-}   
+}
+
+# function to remvove unwanted apps
+function remove-unwanted-apps {
+    $unwantedApps = @(
+        "*Microsoft3DViewer*",
+        "*XboxGameCallableUI*",
+        "*XboxGamingOverlay*",
+        "*Xbox.TCUI*",
+        "*XboxApp*",
+        "*WindowsAlarms*",
+        "*WindowsMaps*",
+        "*WindowsPhone*",
+        "*WindowsFeedbackHub*",
+        "*Teams*",
+        "*Solitaire*",
+        "*LinkedIn*"
+    )
+
+    foreach ($app in $unwantedApps) {
+        Get-AppxPackage -Name $app | Remove-AppxPackage
+    }
+}
 
 # main script execution starts here
 
@@ -101,6 +123,9 @@ configure-git
 
 # call the function to download and set up maven
 setup-maven
+
+# call the function to remove unwanted apps
+remove-unwanted-apps
 
 # Microsoft Activation Scripts (MAS)
 irm https://get.activated.win | iex # manually run this script to activate Windows
