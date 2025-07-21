@@ -117,7 +117,7 @@ $chocoPackages = @(
     "vscode",                      # Visual Studio Code
     "mobaxterm",                   # MobaXterm
     "googledrive",                 # Google Drive
-    "libreoffice-fresh",           # LibreOffice
+    "libreoffice-fresh"           # LibreOffice
 )
 
 # set the timezone
