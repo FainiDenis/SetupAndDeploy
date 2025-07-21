@@ -1,5 +1,5 @@
-# This script sets up a Windows development environment using winget,
-# downloads Maven, configures Git, and activate Windows
+# This script sets up a Windows development environment using Chocolatey,
+# downloads Maven, configures Git, and activates Windows
 
 # Define versions for the packages and git username and email
 $mavenVersion = "3.9.11"
@@ -8,7 +8,7 @@ $javaVersion = "24"
 $gitUsername = "FainiDenis"
 $gitEmail = "dtf8841@rit.edu"
 
-# function to check if a command exists
+# Function to check if a command exists
 function check_exists_command {
     param (
         [string]$command
@@ -19,23 +19,33 @@ function check_exists_command {
     }
 }
 
-# function to install packages using winget
+# Function to install Chocolatey if not already installed
+function install-chocolatey {
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        Write-Host "Installing Chocolatey..."
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+    }
+}
+
+# Function to install packages using Chocolatey
 function install_packages {
     param (
         [string[]]$packages
     )
     foreach ($package in $packages) {
-        winget install --id $package -e
+        choco install $package -y
     }
 }
 
-# function to configure Git
+# Function to configure Git
 function configure-git {
     git config --global user.name $gitUsername
     git config --global user.email $gitEmail
 }
 
-# function to download and set up Maven
+# Function to download and set up Maven
 function setup-maven {
     $mavenUrl = "https://dlcdn.apache.org/maven/maven-3/$mavenVersion/binaries/apache-maven-$mavenVersion-bin.zip"
     $mavenZipPath = "C:\apache-maven-$mavenVersion-bin.zip"
@@ -56,7 +66,7 @@ function setup-maven {
     Remove-Item -Path $mavenZipPath -Force
 }
 
-# function to update the windows system using powershell
+# Function to update the Windows system using PowerShell
 function update_system {
     Write-Host "Updating system..."
     Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser  # Install the PSWindowsUpdate module
@@ -64,7 +74,7 @@ function update_system {
     Get-WindowsUpdate -AcceptAll -Install -AutoReboot  # Get and install all available updates, accepting all prompts and rebooting if necessary
 }
 
-# function to remvove unwanted apps
+# Function to remove unwanted apps
 function remove_unwanted-apps {
     $unwantedApps = @(
         "*Teams*"
@@ -75,45 +85,46 @@ function remove_unwanted-apps {
     }
 }
 
-# function to set timezone
+# Function to set timezone
 function set_timezone {
     Set-TimeZone -Name "Eastern Standard Time"
 }
 
-# main script execution starts here
+# Main script execution starts here
 
-# check if winget is installed
-check_exists_command -command "winget"
+# Install Chocolatey if not already installed
+install-chocolatey
 
-# define the list of packages to install
-$wingetPackages = @(
-    "Mozilla.Firefox",                      # Firefox browser
-    "WiresharkFoundation.Wireshark",        # Wireshark
-    "Python.Python.$pythonVersion",         # Python
-    "Microsoft.WindowsSubsystemForLinux",   # WSL
-    "Git.Git",                              # Git
-    "VideoLAN.VLC",                         # VLC Media Player
-    "MusicBrainz.Picard",                   # MusicBrainz Picard
-    "7zip.7zip",                            # 7-Zip
-    "PuTTY.PuTTY",                          # PuTTY
-    "Notepad++.Notepad++",                  # Notepad++
-    "Tailscale.Tailscale",                  # Tailscale
-    "Greenshot.Greenshot",                  # Greenshot
-    "Oracle.JDK.$javaVersion",              # Oracle JDK
-    "WinFsp.WinFsp",                        # WinFsp
-    "MullvadVPN.MullvadVPN",                # Mullvad VPN
-    "Microsoft.Office365",                  # Microsoft Office 365
-    "Microsoft.VisualStudioCode",           # Visual Studio Code
-    "Mobatek.MobaXterm",                    # MobaXterm
-    "Google.GoogleDrive",                   # Google Drive
-    "Adobe.Acrobat.Reader.64-bit"           # Adobe Acrobat Reader
+# Check if choco is installed
+check_exists_command -command "choco"
+
+# Define the list of packages to install with Chocolatey
+$chocoPackages = @(
+    "firefox",                      # Firefox browser
+    "wireshark",                   # Wireshark
+    "python3",                     # Python (version 3.9, Chocolatey will handle specific version)
+    "git",                         # Git
+    "vlc",                         # VLC Media Player
+    "picard",                      # MusicBrainz Picard
+    "7zip",                        # 7-Zip
+    "putty",                       # PuTTY
+    "notepadplusplus",             # Notepad++
+    "tailscale",                   # Tailscale
+    "greenshot",                   # Greenshot
+    "openjdk",                     # OpenJDK (Java, Chocolatey will handle specific version)
+    "winfsp",                      # WinFsp
+    "microsoft-office-deployment", # Microsoft Office 365
+    "vscode",                      # Visual Studio Code
+    "mobaxterm",                   # MobaXterm
+    "googledrive",                 # Google Drive
+    "libreoffice-fresh",           # LibreOffice
 )
 
 # set the timezone
 set_timezone
 
 # call the function to install packages
-install_packages -packages $wingetPackages
+install_packages -packages $chocoPackages
 
 # call the function to configure Git
 configure-git
