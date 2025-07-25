@@ -26,7 +26,7 @@ GIT_CONFIG_FILE="$HOME/.gitconfig"
 GIT_IGNORE_FILE="$HOME/.gitignore"
 ZSHRC_FILE="$HOME/.zshrc"
 SCREENSHOT_DIR="$HOME/Screenshots"
-JAVA_INSTALL_DIR="/Library/Java/JavaVirtualMachines/jdk-$JAVA_VERSION.jdk/Contents/Home"
+JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-$JAVA_VERSION.jdk/Contents/Home"
 MAVEN_INSTALL_DIR="/usr/local/maven"
 MAVEN_HOME="$MAVEN_INSTALL_DIR/apache-maven-$MAVEN_VERSION"
 
@@ -54,12 +54,19 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Print task start with better colored output fomatting
+# ============================================================
+# Check if running in zsh
+if [ -n "$ZSH_VERSION" ]; then
+    echo -e "${RED}Error: This script should be run with bash, not zsh${NC}"
+    exit 1
+fi
+
+# Print task start with better colored output formatting
 task_start() {
     echo -e "\n${BLUE}[TASK] $1${NC}"
 }
 
-# Print task result (OK, Changed, or ailed)
+# Print task result (OK, Changed, or Failed)
 task_result() {
     local status=$1
     local message=$2
@@ -129,6 +136,7 @@ cask_packages=(
     visual-studio-code
     windows-app
     libreoffice
+    oracle-jdk
 )
 for package in "${cask_packages[@]}"; do
     task_start "Installing $package"
@@ -153,61 +161,61 @@ for app in "${mas_apps[@]}"; do
     mas install "$app_id" && task_result "Changed" "$app_name installed"
 done
 
-# Check system architecture and select Java JDK URL
-task_start "Checking system architecture"
-ARCH=$(uname -m)
-if [ "$ARCH" = "arm64" ]; then
-    JAVA_URL="$JAVA_JDK_ARM64_URL"
-    task_result "OK" "Detected arm64 architecture"
-else
-    JAVA_URL="$JAVA_JDK_X64_URL"
-    task_result "OK" "Detected x86_64 architecture"
-fi
-
-# Install Java JDK
-task_start "Checking for Java JDK $JAVA_VERSION"
-if [ ! -d "$JAVA_INSTALL_DIR" ]; then
-    task_start "Downloading and installing Java JDK $JAVA_VERSION"
-    curl -L "$JAVA_URL" -o /tmp/jdk-$JAVA_VERSION.dmg &&
-    hdiutil attach /tmp/jdk-$JAVA_VERSION.dmg -mountpoint /Volumes/JDK &&
-    sudo installer -pkg /Volumes/JDK/*.pkg -target / &&
-    hdiutil detach /Volumes/JDK &&
-    rm /tmp/jdk-$JAVA_VERSION.dmg &&
-    task_result "Changed" "Java JDK $JAVA_VERSION installed"
-else
-    task_result "OK" "Java JDK $JAVA_VERSION already installed"
-fi
-
 # Set JAVA_HOME in .zshrc
 task_start "Setting JAVA_HOME"
+JAVA_HOME_PATH=$(/usr/libexec/java_home 2>/dev/null)
 if ! grep -q "export JAVA_HOME=" "$ZSHRC_FILE" 2>/dev/null; then
-    echo "export JAVA_HOME=$JAVA_INSTALL_DIR" >> "$ZSHRC_FILE" &&
-    task_result "Changed" "JAVA_HOME set to $JAVA_INSTALL_DIR"
+    if [ -w "$ZSHRC_FILE" ]; then
+        echo "export JAVA_HOME=$JAVA_HOME_PATH" >> "$ZSHRC_FILE"
+    else
+        sudo sh -c "echo 'export JAVA_HOME=$JAVA_HOME_PATH' >> '$ZSHRC_FILE'"
+    fi
+    task_result "Changed" "JAVA_HOME set to $JAVA_HOME_PATH"
 else
     task_result "OK" "JAVA_HOME already set"
 fi
 
 # Install Maven
 task_start "Checking for Maven"
-if [ ! -d "$MAVEN_HOME" ]; then
+if ! command -v mvn &>/dev/null; then
     task_start "Downloading and installing Maven"
-    curl -L "$MAVEN_BIN_URL" -o /tmp/maven.zip &&
-    sudo mkdir -p "$MAVEN_INSTALL_DIR" &&
-    sudo unzip /tmp/maven.zip -d "$MAVEN_INSTALL_DIR" &&
-    rm /tmp/maven.zip &&
-    task_result "Changed" "Maven installed"
+    if curl -L "$MAVEN_BIN_URL" -o /tmp/maven.zip; then
+        sudo mkdir -p "$MAVEN_INSTALL_DIR" || { task_result "Failed" "Could not create Maven install directory"; exit 1; }
+        
+        if sudo unzip -q /tmp/maven.zip -d /tmp; then
+            # Remove existing directory if it exists
+            sudo rm -rf "$MAVEN_HOME"
+            
+            # Move the unzipped directory to the correct location
+            sudo mv "/tmp/apache-maven-$MAVEN_VERSION" "$MAVEN_HOME" || { task_result "Failed" "Could not move Maven directory"; exit 1; }
+            
+            # Add Maven to PATH in .zshrc if not already present
+            if ! grep -q "export MAVEN_HOME=$MAVEN_HOME" "$ZSHRC_FILE"; then
+                echo "export MAVEN_HOME=$MAVEN_HOME" >> "$ZSHRC_FILE"
+                echo 'export PATH="$MAVEN_HOME/bin:$PATH"' >> "$ZSHRC_FILE"
+            fi
+            
+            # Clean up
+            rm -f /tmp/maven.zip
+            
+            # Verify installation
+            if "$MAVEN_HOME/bin/mvn" --version &>/dev/null; then
+                task_result "Changed" "Maven $MAVEN_VERSION installed successfully"
+            else
+                task_result "Failed" "Maven installation verification failed"
+                exit 1
+            fi
+        else
+            task_result "Failed" "Failed to unzip Maven"
+            exit 1
+        fi
+    else
+        task_result "Failed" "Failed to download Maven"
+        exit 1
+    fi
 else
-    task_result "OK" "Maven already installed"
-fi
-
-# Set MAVEN_HOME in .zshrc
-task_start "Setting MAVEN_HOME"
-if ! grep -q "export MAVEN_HOME=" "$ZSHRC_FILE" 2>/dev/null; then
-    echo "export MAVEN_HOME=$MAVEN_HOME" >> "$ZSHRC_FILE" &&
-    echo "export PATH=\$MAVEN_HOME/bin:\$PATH" >> "$ZSHRC_FILE" &&
-    task_result "Changed" "MAVEN_HOME set to $MAVEN_HOME"
-else
-    task_result "OK" "MAVEN_HOME already set"
+    installed_version=$(mvn --version 2>/dev/null | head -n 1 | awk '{print $3}')
+    task_result "OK" "Maven already installed (version $installed_version)"
 fi
 
 # Set up Git configuration
@@ -275,6 +283,13 @@ task_start "Set screenshot location"
 mkdir -p "$SCREENSHOT_DIR" &&
 defaults write com.apple.screencapture location "$SCREENSHOT_DIR" &&
 killall SystemUIServer &&
+task_result "Changed" "Screenshots location set to $SCREENSHOT_DIR"
+
+# Set screenshot location
+task_start "Set screenshot location"
+mkdir -p "$SCREENSHOT_DIR" &&
+defaults write com.apple.screencapture location "$SCREENSHOT_DIR" &&
+killall SystemUIServer &&
 task_result "Changed" "Screenshot location set to $SCREENSHOT_DIR"
 
 task_start "Set Dock to auto-hide and size"
@@ -299,7 +314,7 @@ task_start "Set Dark Mode"
 defaults write NSGlobalDomain AppleInterfaceStyle -string "Dark" &&
 defaults write NSGlobalDomain AppleInterfaceStyleSwitchesAutomatically -bool true &&
 osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' &&
-task_result "Changed" "Dark Mode enabled"   
+task_result "Changed" "Dark Mode enabled"
 
 # Create ls aliases
 task_start "Creating ls aliases"
@@ -322,7 +337,8 @@ task_result "Changed" "Folders organized"
 task_start "Checking for Oh My Zsh"
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     task_start "Installing Oh My Zsh"
-    sh -c "$(curl -fsSL $OHMYZSH_INSTALL_URL)" --unattended &&
+    # Prevent Oh My Zsh from auto-loading during installation
+    RUNZSH=no CHSH=no sh -c "$(curl -fsSL $OHMYZSH_INSTALL_URL)" &&
     task_result "Changed" "Oh My Zsh installed"
 else
     task_result "OK" "Oh My Zsh already installed"
@@ -345,5 +361,8 @@ else
     task_result "OK" "zsh-autosuggestions already installed"
 fi
 
+# Final message
 task_start "Setup complete"
 task_result "OK" "macOS setup completed successfully"
+echo -e "\n${YELLOW}Note: Some changes (like Oh My Zsh) will only take effect when you start a new zsh session.${NC}"
+echo -e "${YELLOW}Please run 'zsh' to start a new session with all your new settings.${NC}"
